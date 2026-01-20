@@ -5,6 +5,7 @@
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://python.org)
 [![Security](https://img.shields.io/badge/Focus-Cybersecurity-red.svg)](#)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Security Audit](https://github.com/Akshu1245/akshay-cyber-lab/actions/workflows/security-audit.yml/badge.svg)](https://github.com/Akshu1245/akshay-cyber-lab/actions/workflows/security-audit.yml)
 
 ##  Purpose
 
@@ -12,26 +13,39 @@ A collection of security tools built for learning offensive security, penetratio
 
 ##  Tools
 
-### `nmap-json.py` - Network Scanner with JSON Export
-Automated Nmap wrapper that outputs structured JSON for pipeline integration.
+### `security-auditor.py` - Automatic Vulnerability Scanner & Fixer  NEW
+Scans source code for security vulnerabilities and can automatically fix common issues.
 
 ```bash
-# Basic scan
-python tools/nmap-json.py 192.168.1.1
+# Scan directory
+python tools/security-auditor.py ./src
 
-# JSON only output
-python tools/nmap-json.py scanme.nmap.org --json-only
+# Scan and AUTO-FIX issues
+python tools/security-auditor.py . --fix
 
-# Custom output file
-python tools/nmap-json.py 10.0.0.0/24 -o network_scan.json
+# JSON output for CI/CD
+python tools/security-auditor.py . --json
+
+# SARIF output for GitHub Security tab
+python tools/security-auditor.py . --sarif > results.sarif
 ```
 
-**Features:**
-- Automatic service version detection
-- OS fingerprinting
-- JSON export for automation
-- Human-readable summary tables
-- Timestamped logging
+**Detects 15+ vulnerability types:**
+
+| Category | Checks |
+|----------|--------|
+| **Secrets** | Hardcoded API keys, passwords, tokens, AWS keys |
+| **Injection** | SQL injection, command injection, eval/exec |
+| **Crypto** | Weak hashes (MD5, SHA1), insecure random |
+| **Config** | Debug mode, Flask debug, wildcard CORS |
+| **Deserialization** | Pickle, unsafe YAML loading |
+| **Other** | Path traversal, logging sensitive data |
+
+**Auto-fixes available for:**
+- eval()  ast.literal_eval()
+- MD5/SHA1  SHA256
+- Debug mode  environment variable
+- yaml.load  yaml.safe_load
 
 ---
 
@@ -65,14 +79,51 @@ python tools/hash-toolkit.py file document.pdf --algo sha256
 
 ---
 
+### `nmap-json.py` - Network Scanner with JSON Export
+Automated Nmap wrapper that outputs structured JSON for pipeline integration.
+
+```bash
+# Basic scan
+python tools/nmap-json.py 192.168.1.1
+
+# JSON only output
+python tools/nmap-json.py scanme.nmap.org --json-only
+
+# Custom output file
+python tools/nmap-json.py 10.0.0.0/24 -o network_scan.json
+```
+
+**Features:**
+- Automatic service version detection
+- OS fingerprinting
+- JSON export for automation
+- Human-readable summary tables
+- Timestamped logging
+
+---
+
+##  CI/CD Integration
+
+This repo includes automatic security scanning via GitHub Actions:
+
+- **On every push:** Scans code for vulnerabilities
+- **On PRs:** Blocks merge if CRITICAL issues found
+- **Weekly:** Scheduled security audit
+- **SARIF:** Results appear in GitHub Security tab
+
+---
+
 ##  Structure
 
 ```
+ .github/workflows/
+    security-audit.yml    # Auto security scanning
  tools/
-    nmap-json.py      # Network scanning
-    hash-toolkit.py   # Hash utilities
+    security-auditor.py   # Vulnerability scanner + auto-fixer
+    hash-toolkit.py       # Hash utilities
+    nmap-json.py          # Network scanning
  logs/
-    Day1.md           # Learning journal
+    Day1.md
     Day3.md
  README.md
 ```
@@ -88,6 +139,7 @@ cd akshay-cyber-lab
 pip install bcrypt
 
 # Run tools
+python tools/security-auditor.py --help
 python tools/hash-toolkit.py --help
 python tools/nmap-json.py --help
 ```
@@ -101,6 +153,8 @@ These tools are for **educational and authorized testing only**. Only use on sys
 - [x] Network scanning fundamentals (Nmap)
 - [x] Hash identification and cracking
 - [x] Docker security labs (OWASP Juice Shop)
+- [x] Static code security analysis
+- [x] CI/CD security integration
 - [ ] Web vulnerability scanning
 - [ ] Wireless security tools
 - [ ] Privilege escalation scripts

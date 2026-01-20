@@ -1,0 +1,77 @@
+﻿# Security Audit Workflow
+# Automatically scans code for vulnerabilities on every push/PR
+
+name: Security Audit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 8 * * 1'  # Weekly Monday 8 AM UTC
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    name: Scan for Vulnerabilities
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Run Security Auditor
+        id: audit
+        run: |
+          echo "Running security scan..."
+          python tools/security-auditor.py . --json > security-report.json || true
+          
+          # Parse results
+          CRITICAL=$(cat security-report.json | python -c "import sys,json; d=json.load(sys.stdin); print(d['summary']['by_severity']['CRITICAL'])")
+          HIGH=$(cat security-report.json | python -c "import sys,json; d=json.load(sys.stdin); print(d['summary']['by_severity']['HIGH'])")
+          TOTAL=$(cat security-report.json | python -c "import sys,json; d=json.load(sys.stdin); print(d['summary']['total_findings'])")
+          
+          echo "critical=$CRITICAL" >> $GITHUB_OUTPUT
+          echo "high=$HIGH" >> $GITHUB_OUTPUT
+          echo "total=$TOTAL" >> $GITHUB_OUTPUT
+          
+          echo "## Security Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Severity | Count |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Critical | $CRITICAL |" >> $GITHUB_STEP_SUMMARY
+          echo "| High | $HIGH |" >> $GITHUB_STEP_SUMMARY
+          echo "| Total | $TOTAL |" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Generate SARIF Report
+        if: always()
+        run: |
+          python tools/security-auditor.py . --sarif > results.sarif || true
+      
+      - name: Upload SARIF to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
+        continue-on-error: true
+      
+      - name: Fail on Critical Issues
+        if: steps.audit.outputs.critical != '0'
+        run: |
+          echo "::error::Found ${{ steps.audit.outputs.critical }} CRITICAL security issues!"
+          exit 1
+      
+      - name: Upload Security Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-report
+          path: security-report.json

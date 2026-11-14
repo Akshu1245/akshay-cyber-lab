@@ -167,3 +167,9 @@ These tools are for **educational and authorized testing only**. Only use on sys
 ---
 
 *Built for learning. Used responsibly.*
+
+## Screenshots
+
+Real output from a self-scan run of `tools/security-auditor.py` (14 Nov 2026):
+
+![security-auditor real output](docs/auditor-output.png)
